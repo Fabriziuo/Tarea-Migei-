@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Compound Words Adventure!</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti for victory celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap');
+        body {
+            font-family: 'Quicksand', sans-serif;
+        }
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.drag-over {
+            background-color: #fef08a;
+            border-color: #eab308;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 min-h-screen text-slate-800 flex flex-col items-center justify-between p-4 selection:bg-yellow-300">
+
+    <header class="w-full max-w-4xl bg-white/95 backdrop-blur rounded-3xl shadow-xl p-4 md:p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border-4 border-yellow-300">
+        <div class="flex items-center gap-3">
+            <span class="text-4xl md:text-5xl animate-bounce">🦁</span>
+            <div>
+                <h1 class="title-font text-2xl md:text-3xl text-teal-600 tracking-wide">Animal Compound Words!</h1>
+                <p class="text-sm text-slate-600 font-bold">¡Une las palabras y descubre animales en inglés! (A1-A2)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6 bg-teal-50 px-6 py-3 rounded-2xl border-2 border-teal-200">
+            <div class="text-center">
+                <span class="block text-xs font-bold text-teal-500 uppercase">Score</span>
+                <span id="score" class="title-font text-2xl text-teal-700">0</span>
+            </div>
+            <div class="h-8 w-0.5 bg-teal-200"></div>
+            <div class="text-center">
+                <span class="block text-xs font-bold text-teal-500 uppercase">Level</span>
+                <span id="level" class="title-font text-2xl text-teal-700">1/6</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-6 md:p-10 flex flex-col items-center relative overflow-hidden border-8 border-white/50">
+        
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-100 h-4 rounded-full mb-8 overflow-hidden border border-slate-200">
+            <div id="progress-bar" class="bg-gradient-to-r from-yellow-400 to-orange-500 h-full w-0 transition-all duration-500 rounded-full"></div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="w-full flex flex-col items-center">
+            
+            <!-- Instructions and Hint -->
+            <div class="text-center mb-8">
+                <span id="animal-emoji" class="text-7xl block mb-2 filter drop-shadow-md animate-pulse">🐛</span>
+                <h2 class="title-font text-xl md:text-2xl text-slate-700">Combina dos palabras para formar:</h2>
+                <span id="target-hint" class="inline-block bg-teal-100 text-teal-800 px-4 py-1.5 rounded-full font-bold text-sm mt-2 shadow-sm">Pista aquí</span>
+            </div>
+
+            <!-- Puzzle Assembly Area -->
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 w-full my-4">
+                
+                <!-- Word Box 1 -->
+                <div id="slot-1" class="drop-zone w-36 h-24 md:w-44 md:h-28 rounded-2xl border-4 border-dashed border-teal-300 bg-teal-50 flex items-center justify-center text-xl md:text-2xl title-font text-teal-700 shadow-inner cursor-pointer" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="drop(event, 1)" onclick="returnWordToBank(1)" title="Haz clic para devolver">
+                    <span class="text-teal-400 text-sm">Arrastra 1</span>
+                </div>
+
+                <span class="title-font text-3xl text-slate-400">+</span>
+
+                <!-- Word Box 2 -->
+                <div id="slot-2" class="drop-zone w-36 h-24 md:w-44 md:h-28 rounded-2xl border-4 border-dashed border-teal-300 bg-teal-50 flex items-center justify-center text-xl md:text-2xl title-font text-teal-700 shadow-inner cursor-pointer" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="drop(event, 2)" onclick="returnWordToBank(2)" title="Haz clic para devolver">
+                    <span class="text-teal-400 text-sm">Arrastra 2</span>
+                </div>
+
+                <span class="title-font text-3xl text-slate-400">=</span>
+
+                <!-- Result Box -->
+                <div class="w-36 h-24 md:w-44 md:h-28 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-xl md:text-2xl title-font text-white shadow-lg shadow-yellow-200">
+                    <span id="result-word" class="tracking-wide">?</span>
+                </div>
+
+            </div>
+
+            <!-- Feedback Message -->
+            <div id="feedback" class="h-10 my-4 flex items-center justify-center font-bold text-lg transition-all"></div>
+
+            <!-- Draggable Word Bank -->
+            <div class="w-full mt-2 bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 flex flex-col items-center">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Palabras disponibles (Toca o arrastra)</p>
+                <div id="word-bank" class="flex flex-wrap justify-center gap-4 min-h-[60px] items-center">
+                    <!-- Dynamic Words -->
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex gap-4 mt-8">
+                <button onclick="resetCurrentLevel()" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition shadow-sm">
+                    🔄 Limpiar
+                </button>
+                <button id="check-btn" onclick="checkAnswer()" class="px-8 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-bold transition shadow-lg shadow-teal-200 text-lg">
+                    ✨ ¡Comprobar!
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Victory Screen (Hidden initially) -->
+        <div id="victory-screen" class="hidden flex-col items-center justify-center py-12 text-center w-full">
+            <span class="text-8xl mb-4 animate-bounce">🏆</span>
+            <h2 class="title-font text-4xl text-teal-600 mb-2">¡Excelente Trabajo!</h2>
+            <p class="text-slate-600 text-lg mb-6">¡Has dominado las palabras compuestas de animales en inglés!</p>
+            <div class="bg-teal-50 border-2 border-teal-200 p-6 rounded-2xl mb-8 max-w-md w-full">
+                <span class="text-sm font-bold text-teal-500 uppercase block">Puntuación Final</span>
+                <span id="final-score" class="title-font text-5xl text-teal-700">60</span>
+                <span class="text-slate-500 text-sm block mt-1">¡Puntos totales conseguidos!</span>
+            </div>
+            <button onclick="restartGame()" class="px-10 py-4 bg-yellow-400 hover:bg-yellow-500 text-slate-900 title-font text-xl rounded-2xl shadow-xl transition transform hover:scale-105">
+                🎮 Jugar de Nuevo
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-6 text-white/90 text-sm font-bold text-center">
+        Compound Words Interactive Learning • English A1-A2 for Kids
+    </footer>
+
+    <script>
+        const levels = [
+            {
+                emoji: "🐛",
+                hint: "Pequeño insecto verde que brilla de noche (Gusano + Luz)",
+                word1: "Fire",
+                word2: "fly",
+                correctResult: "Firefly",
+                distractors: ["Water", "Sun", "Dog"]
+            },
+            {
+                emoji: "🐝",
+                hint: "Insecto volador que produce miel dulce (Miel + Abeja)",
+                word1: "Honey",
+                word2: "bee",
+                correctResult: "Honeybee",
+                distractors: ["Sugar", "Fly", "Bird"]
+            },
+            {
+                emoji: "⭐",
+                hint: "Criatura marina con forma de cinco puntas (Estrella + Pez)",
+                word1: "Star",
+                word2: "fish",
+                correctResult: "Starfish",
+                distractors: ["Moon", "Water", "Ocean"]
+            },
+            {
+                emoji: "🐞",
+                hint: "Insecto rojo con puntos negros (Señora + Bicho)",
+                word1: "Lady",
+                word2: "bug",
+                correctResult: "Ladybug",
+                distractors: ["King", "Fly", "Ant"]
+            },
+            {
+                emoji: "🦋",
+                hint: "Insecto hermoso con alas de colores (Mantequilla + Vuelo)",
+                word1: "Butter",
+                word2: "fly",
+                correctResult: "Butterfly",
+                distractors: ["Milk", "Bird", "Color"]
+            },
+            {
+                emoji: "🕸️",
+                hint: "Animal arácnido que teje telas (Araña + Red)",
+                word1: "Spider",
+                word2: "web",
+                correctResult: "Spiderweb",
+                distractors: ["Net", "Bug", "Fly"]
+            }
+        ];
+
+        let currentLevelIndex = 0;
+        let score = 0;
+        let currentSlot1 = null;
+        let currentSlot2 = null;
+        let activeOptions = [];
+
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const progressBar = document.getElementById('progress-bar');
+        const animalEmoji = document.getElementById('animal-emoji');
+        const targetHint = document.getElementById('target-hint');
+        const slot1 = document.getElementById('slot-1');
+        const slot2 = document.getElementById('slot-2');
+        const resultWord = document.getElementById('result-word');
+        const wordBank = document.getElementById('word-bank');
+        const feedback = document.getElementById('feedback');
+        const gameScreen = document.getElementById('game-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+
+        function initGame() {
+            currentLevelIndex = 0;
+            score = 0;
+            scoreEl.textContent = score;
+            gameScreen.classList.remove('hidden');
+            victoryScreen.classList.add('hidden');
+            loadLevel();
+        }
+
+        function loadLevel() {
+            const level = levels[currentLevelIndex];
+            levelEl.textContent = `${currentLevelIndex + 1}/${levels.length}`;
+            progressBar.style.width = `${((currentLevelIndex) / levels.length) * 100}%`;
+            
+            animalEmoji.textContent = level.emoji;
+            targetHint.textContent = level.hint;
+            
+            currentSlot1 = null;
+            currentSlot2 = null;
+            slot1.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 1</span>`;
+            slot2.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 2</span>`;
+            resultWord.textContent = "?";
+            feedback.textContent = "";
+
+            // Prepare word bank options (correct 2 + distractors)
+            activeOptions = [
+                { id: 'w1', text: level.word1 },
+                { id: 'w2', text: level.word2 },
+                ...level.distractors.map((d, i) => ({ id: `d${i}`, text: d }))
+            ];
+            activeOptions.sort(() => Math.random() - 0.5);
+
+            renderWordBank();
+        }
+
+        function renderWordBank() {
+            wordBank.innerHTML = '';
+            if (activeOptions.length === 0) {
+                wordBank.innerHTML = `<span class="text-slate-400 italic text-sm">Todas las palabras colocadas</span>`;
+                return;
+            }
+
+            activeOptions.forEach((item) => {
+                const chip = document.createElement('div');
+                chip.className = "bg-white border-2 border-teal-300 text-teal-700 px-5 py-2.5 rounded-xl font-bold shadow-md cursor-grab active:cursor-grabbing hover:bg-teal-50 transition transform hover:-translate-y-1 title-font text-lg select-none";
+                chip.draggable = true;
+                chip.textContent = item.text;
+                chip.dataset.id = item.id;
+                chip.ondragstart = (e) => {
+                    e.dataTransfer.setData("text/plain", JSON.stringify(item));
+                };
+                chip.onclick = () => handleWordClick(item);
+                wordBank.appendChild(chip);
+            });
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('drag-over');
+        }
+
+        function removeDropStyle(ev) {
+            ev.currentTarget.classList.remove('drag-over');
+        }
+
+        function drop(ev, slotNumber) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            try {
+                const itemData = JSON.parse(ev.dataTransfer.getData("text/plain"));
+                placeWordInSlot(itemData, slotNumber);
+            } catch(e) {
+                // Fallback for plain string transfer
+                const text = ev.dataTransfer.getData("text");
+                const found = activeOptions.find(o => o.text === text);
+                if (found) placeWordInSlot(found, slotNumber);
+            }
+        }
+
+        function handleWordClick(item) {
+            if (!currentSlot1) {
+                placeWordInSlot(item, 1);
+            } else if (!currentSlot2) {
+                placeWordInSlot(item, 2);
+            }
+        }
+
+        function placeWordInSlot(item, slotNumber) {
+            // Remove from active options
+            activeOptions = activeOptions.filter(o => o.id !== item.id);
+
+            if (slotNumber === 1) {
+                if (currentSlot1) {
+                    activeOptions.push(currentSlot1); // return old word back
+                }
+                currentSlot1 = item;
+                slot1.innerHTML = `<span class="text-slate-800 animate-fade-in">${item.text}</span>`;
+            } else {
+                if (currentSlot2) {
+                    activeOptions.push(currentSlot2); // return old word back
+                }
+                currentSlot2 = item;
+                slot2.innerHTML = `<span class="text-slate-800 animate-fade-in">${item.text}</span>`;
+            }
+
+            renderWordBank();
+            updateResultPreview();
+        }
+
+        function returnWordToBank(slotNumber) {
+            if (slotNumber === 1 && currentSlot1) {
+                activeOptions.push(currentSlot1);
+                currentSlot1 = null;
+                slot1.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 1</span>`;
+            } else if (slotNumber === 2 && currentSlot2) {
+                activeOptions.push(currentSlot2);
+                currentSlot2 = null;
+                slot2.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 2</span>`;
+            }
+            renderWordBank();
+            updateResultPreview();
+        }
+
+        function updateResultPreview() {
+            if (currentSlot1 && currentSlot2) {
+                resultWord.textContent = currentSlot1.text + currentSlot2.text;
+            } else {
+                resultWord.textContent = "?";
+            }
+        }
+
+        function resetCurrentLevel() {
+            if (currentSlot1) activeOptions.push(currentSlot1);
+            if (currentSlot2) activeOptions.push(currentSlot2);
+            currentSlot1 = null;
+            currentSlot2 = null;
+            slot1.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 1</span>`;
+            slot2.innerHTML = `<span class="text-teal-400 text-sm">Arrastra 2</span>`;
+            resultWord.textContent = "?";
+            feedback.textContent = "";
+            renderWordBank();
+        }
+
+        function checkAnswer() {
+            if (!currentSlot1 || !currentSlot2) {
+                feedback.textContent = "⚠️ ¡Coloca dos palabras primero!";
+                feedback.className = "h-10 my-4 flex items-center justify-center font-bold text-lg text-amber-600";
+                return;
+            }
+
+            const level = levels[currentLevelIndex];
+            const combined = currentSlot1.text + currentSlot2.text;
+            const reverseCombined = currentSlot2.text + currentSlot1.text;
+
+            const isCorrect = (combined.toLowerCase() === level.correctResult.toLowerCase()) || 
+                              (reverseCombined.toLowerCase() === level.correctResult.toLowerCase() && level.word1 !== level.word2);
+
+            if (isCorrect) {
+                feedback.textContent = "🎉 ¡Correcto! ¡Muy bien!";
+                feedback.className = "h-10 my-4 flex items-center justify-center font-bold text-lg text-emerald-600 animate-bounce";
+                score += 10;
+                scoreEl.textContent = score;
+                
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                setTimeout(() => {
+                    currentLevelIndex++;
+                    if (currentLevelIndex < levels.length) {
+                        loadLevel();
+                    } else {
+                        showVictory();
+                    }
+                }, 1500);
+
+            } else {
+                feedback.textContent = "❌ ¡Inténtalo de nuevo! Revisa el orden.";
+                feedback.className = "h-10 my-4 flex items-center justify-center font-bold text-lg text-rose-500 animate-pulse";
+            }
+        }
+
+        function showVictory() {
+            gameScreen.classList.add('hidden');
+            victoryScreen.classList.remove('hidden');
+            victoryScreen.classList.add('flex');
+            document.getElementById('final-score').textContent = score;
+            progressBar.style.width = `100%`;
+            
+            confetti({
+                particleCount: 200,
+                spread: 100,
+                origin: { y: 0.4 }
+            });
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
+        // Initialize application on load
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
